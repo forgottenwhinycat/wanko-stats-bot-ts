@@ -1,0 +1,8 @@
+services:
+  node:
+    build: .
+    container_name: prostir-discord-stats
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/app/config.json
+      - ./assets/:/app/assets

@@ -1,0 +1,88 @@
+import { Achievement } from "../types/types";
+
+export const ACHIEVEMENTS: Record<"messages" | "voice", Achievement[]> = {
+  messages: [
+    {
+      name: "Писак I",
+      description: "Написати 1 повідомлення",
+      check: (s) => s.messages >= 1,
+      icon: "📘",
+      points: 1,
+      tier: 1,
+    },
+    {
+      name: "Писак II",
+      description: "Написати 100 повідомлень",
+      check: (s) => s.messages >= 100,
+      icon: "📘",
+      points: 3,
+      tier: 2,
+    },
+    {
+      name: "Писак III",
+      description: "Написати 1 000 повідомлень",
+      check: (s) => s.messages >= 1000,
+      icon: "📘",
+      points: 6,
+      tier: 3,
+    },
+    {
+      name: "Писак IV",
+      description: "Написати 5 000 повідомлень",
+      check: (s) => s.messages >= 5000,
+      icon: "📘",
+      points: 10,
+      tier: 4,
+    },
+    {
+      name: "Писак V",
+      description: "Написати 10 000 повідомлень",
+      check: (s) => s.messages >= 10000,
+      icon: "📘",
+      points: 15,
+      tier: 5,
+    },
+  ],
+  voice: [
+    {
+      name: "Голосовий ветеран I",
+      description: "Провести 1 годину у голосовому чаті",
+      check: (s) => s.voiceMinutes >= 60,
+      icon: "🎧",
+      points: 2,
+      tier: 1,
+    },
+    {
+      name: "Голосовий ветеран II",
+      description: "Провести 10 годин у голосовому чаті",
+      check: (s) => s.voiceMinutes >= 600,
+      icon: "🎧",
+      points: 4,
+      tier: 2,
+    },
+    {
+      name: "Голосовий ветеран III",
+      description: "Провести 100 годин у голосовому чаті",
+      check: (s) => s.voiceMinutes >= 6000,
+      icon: "🎧",
+      points: 8,
+      tier: 3,
+    },
+    {
+      name: "Голосовий ветеран IV",
+      description: "Провести 500 годин у голосовому чаті",
+      check: (s) => s.voiceMinutes >= 30000,
+      icon: "🎧",
+      points: 12,
+      tier: 4,
+    },
+    {
+      name: "Голосовий ветеран V",
+      description: "Провести 1000 годин у голосовому чаті",
+      check: (s) => s.voiceMinutes >= 60000,
+      icon: "🎧",
+      points: 18,
+      tier: 5,
+    },
+  ],
+};
