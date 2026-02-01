@@ -39,3 +39,15 @@ export interface AchievementData {
     voiceMinutes: number;
   };
 }
+
+export type Period = "all" | "day" | "week" | "month" | "year";
+
+export interface UserStats {
+  xp: number;
+  level: number;
+  messages: number;
+  voiceMinutes: number;
+  balance: number;
+  rep: number
+}
+

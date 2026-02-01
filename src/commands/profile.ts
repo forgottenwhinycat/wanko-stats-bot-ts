@@ -168,8 +168,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const partnerId = await getMarriage(guild.id, user.id);
     let partnerComposite: { input: Buffer; left: number; top: number; }[] = [];
 
-    const partnerX = 215; // координата X під банером
-    const partnerY = 1023; // координата Y під банером
+    const partnerX = 215;
+    const partnerY = 1023;
     const maxTextWidth = 600;
 
     if (partnerId) {
