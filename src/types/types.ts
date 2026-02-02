@@ -51,3 +51,9 @@ export interface UserStats {
   rep: number
 }
 
+export interface ShopItem {
+  roleId: string;
+  name: string;
+  price: number;
+}
+

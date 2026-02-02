@@ -5,10 +5,11 @@ import {
   User,
 } from "discord.js";
 
-import { getUserStats, getLeaderboard, getMarriage } from "../firebase/db";
-
 import sharp from "sharp";
 import path from "path";
+
+import { getUserStats, getLeaderboard, getMarriage } from "../firebase/db";
+
 
 const bannerPath = path.join(__dirname, "../../images/profile.png");
 

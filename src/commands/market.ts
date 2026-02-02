@@ -8,12 +8,7 @@ import {
   ButtonInteraction 
 } from "discord.js";
 import { getUserStats, deductBalance } from "../firebase/db";
-
-interface ShopItem {
-  roleId: string;
-  name: string;
-  price: number;
-}
+import { ShopItem } from "../types/types";
 
 // Приклад магазину
 const shopItems: ShopItem[] = [

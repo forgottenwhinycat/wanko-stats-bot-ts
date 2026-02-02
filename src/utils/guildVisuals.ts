@@ -14,9 +14,9 @@ const BANNER_HEIGHT = 1080;
 
 const TEXT_BLOCKS = {
   voice: {
-    x: 142,        // X блоку
-    y: 795,        // Y блоку
-    width: 300,    // ФІКСОВАНА ширина
+    x: 142, 
+    y: 795,       
+    width: 300,   
     height: 240,
     fontSize: 180,
   },
