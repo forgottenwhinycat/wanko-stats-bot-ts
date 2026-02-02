@@ -1,3 +1,4 @@
+import { Period, UserStats } from "../types/types";
 import { db } from "./firebase";
 import {
   collection,
@@ -9,17 +10,6 @@ import {
   updateDoc,
   deleteDoc,
 } from "firebase/firestore";
-
-export type Period = "all" | "day" | "week" | "month" | "year";
-
-export interface UserStats {
-  xp: number;
-  level: number;
-  messages: number;
-  voiceMinutes: number;
-  balance: number;
-  rep: number
-}
 
 const VOICE_COIN_INTERVAL = 8 * 60 * 1000;
 const VOICE_COIN_AMOUNT = 1;

@@ -4,8 +4,9 @@ import {
   AttachmentBuilder,
 } from "discord.js";
 import sharp from "sharp";
-import { getLeaderboard } from "../firebase/db";
 import path from "path";
+
+import { getLeaderboard } from "../firebase/db";
 
 export const data = new SlashCommandBuilder()
   .setName("top")
