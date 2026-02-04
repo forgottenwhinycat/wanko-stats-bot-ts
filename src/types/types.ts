@@ -48,7 +48,9 @@ export interface UserStats {
   messages: number;
   voiceMinutes: number;
   balance: number;
-  rep: number
+  rep: number;
+
+  balanceSpent?: number;
 }
 
 export interface ShopItem {
