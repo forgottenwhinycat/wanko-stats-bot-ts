@@ -848,3 +848,63 @@ export async function giveVoicePassiveCoin(
 
   return newBalance;
 }
+
+export async function spendBalance(
+  guildId: string,
+  userId: string,
+  amount: number
+) {
+  if (amount <= 0) {
+    throw new Error("INVALID_AMOUNT");
+  }
+
+  const ref = doc(db, "guilds", guildId, "users", userId);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    throw new Error("USER_STATS_NOT_FOUND");
+  }
+
+  const data = snap.data();
+
+  const currentBalance = data.all?.balance ?? 0;
+
+  if (currentBalance < amount) {
+    throw new Error("NOT_ENOUGH_BALANCE");
+  }
+
+  const newBalance = currentBalance - amount;
+
+  await updateDoc(ref, {
+    "all.balance": newBalance,
+  });
+
+  return newBalance;
+}
+
+export async function addBalance(
+  guildId: string,
+  userId: string,
+  amount: number
+) {
+  if (amount <= 0) {
+    throw new Error("INVALID_AMOUNT");
+  }
+
+  const ref = doc(db, "guilds", guildId, "users", userId);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    throw new Error("USER_STATS_NOT_FOUND");
+  }
+
+  const data = snap.data();
+  const currentBalance = data.all?.balance ?? 0;
+  const newBalance = currentBalance + amount;
+
+  await updateDoc(ref, {
+    "all.balance": newBalance,
+  });
+
+  return newBalance;
+}
