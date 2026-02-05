@@ -43,9 +43,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   });
 }
 
-/* -----------------------------------------------------------
-   🔘 КНОПКА: Забрати винагороду
------------------------------------------------------------ */
 export async function handleButton(interaction: ButtonInteraction) {
   if (interaction.customId !== "claim_voice_reward") return;
 
@@ -54,7 +51,6 @@ export async function handleButton(interaction: ButtonInteraction) {
 
   const result = await claimVoiceReward(guildId, userId);
 
-  /* === COOLDOWN === */
   if (!result.success && result.reason === "COOLDOWN") {
     const ms = result.remainingMs;
     const hours = Math.floor(ms / 3_600_000);
@@ -71,7 +67,6 @@ export async function handleButton(interaction: ButtonInteraction) {
     return interaction.reply({ embeds: [embed], ephemeral: true });
   }
 
-  /* === NOT ENOUGH MINUTES === */
   if (!result.success && result.reason === "NOT_ENOUGH_MINUTES") {
     const embed = new EmbedBuilder()
       .setTitle("❌ Недостатньо часу у голосовому!")

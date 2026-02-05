@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { giveRep } from "../firebase/db";
 
-// Map для зберігання часу останнього використання команди користувачами
 const cooldowns = new Map<string, number>();
 
 export const data = new SlashCommandBuilder()
@@ -35,9 +34,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   const userId = interaction.user.id;
 
-  // Перевірка кд
   const now = Date.now();
-  const cooldownAmount = 6 * 60 * 60 * 1000; // 6 годин в мс
+  const cooldownAmount = 6 * 60 * 60 * 1000; 
   const expirationTime = cooldowns.get(userId) || 0;
 
   if (now < expirationTime) {
@@ -50,7 +48,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     });
   }
 
-  // Оновлюємо кд
   cooldowns.set(userId, now + cooldownAmount);
 
   const targetUser = interaction.options.getUser("user", true);

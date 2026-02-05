@@ -37,9 +37,8 @@ module.exports = {
   async execute(interaction: ChatInputCommandInteraction) {
     const guildId = interaction.guildId!;
     const sub = interaction.options.getSubcommand();
-    const userId = interaction.user.id;
 
-    // /marry propose
+    const userId = interaction.user.id;
     if (sub === "propose") {
       const target = interaction.options.getUser("user", true);
       if (target.id === userId)
@@ -66,7 +65,7 @@ module.exports = {
         });
     }
 
-    // /marry accept
+
     if (sub === "accept") {
       const proposer = marriageProposals.get(userId);
       if (!proposer) return interaction.reply({ content: "У тебе немає активних пропозицій.", ephemeral: true });
