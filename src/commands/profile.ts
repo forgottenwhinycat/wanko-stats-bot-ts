@@ -53,9 +53,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const leaderboard = await getLeaderboard(guild.id, "all");
     const rank = leaderboard.findIndex((u) => u.userId === user.id) + 1;
 
-    // ==========================
-    // Аватар користувача
-    // ==========================
     const avatarBuffer = await fetch(
       user.displayAvatarURL({ extension: "png", size: 512 })
     ).then((r) => r.arrayBuffer());

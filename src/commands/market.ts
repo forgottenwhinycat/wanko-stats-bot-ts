@@ -10,7 +10,6 @@ import {
 import { getUserStats, deductBalance } from "../firebase/db";
 import { ShopItem } from "../types/types";
 
-// Приклад магазину
 const shopItems: ShopItem[] = [
   { roleId: "1443046181566681088", name: "VIP", price: 1250 },
   { roleId: "1443046211971059826", name: "MVP", price: 2500 },

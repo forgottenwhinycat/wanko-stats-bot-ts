@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
-import { claimDaily } from "../firebase/db"; // імпорт твоєї функції
+import { claimDaily } from "../firebase/db";
 
 export const data = new SlashCommandBuilder()
   .setName("daily")

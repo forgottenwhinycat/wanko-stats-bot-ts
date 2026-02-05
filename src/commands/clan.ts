@@ -36,7 +36,6 @@ const ensureOwner = async (interaction: ChatInputCommandInteraction, guildId: st
   return clan;
 };
 
-// --------------------------------------------------------
 
 module.exports = {
   data: new SlashCommandBuilder()
