@@ -30,6 +30,7 @@ import config from "./config.json";
 import { handleButton } from "./src/commands/reward";
 
 import { initGuildVisuals } from "./src/utils/guildVisuals";
+import { startDailyActivityRoleWatcher } from "./src/utils/dailyActivityRole";
 
 const token = config.DISCORD_TOKEN;
 const clientId = config.CLIENT_ID;
@@ -41,6 +42,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMembers,
   ],
 });
 
@@ -99,7 +101,7 @@ const MOD_ROLE_ID = "1440122830451769494";
 const ADMIN_ROLE_ID = "1440122830451769494";
 const TICKET_PANEL_CHANNEL_ID = "1440122833190781057";
 
-client.once("clientReady", async () => {
+client.once(Events.ClientReady, async () => {
   console.log(`✅ Увійшов як ${client.user?.tag}`);
 
   initGuildVisuals(client, guildId);
@@ -107,6 +109,8 @@ client.once("clientReady", async () => {
   await clearCommands();
   await registerCommands();
   await resetOldPeriods();
+
+  startDailyActivityRoleWatcher(client, guildId);
 
   setInterval(async () => {
     for (const guild of client.guilds.cache.values()) {

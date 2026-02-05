@@ -7,6 +7,7 @@ import {
 import { spendBalance, addBalance, getUserStats } from "../firebase/db";
 
 const COMMISSION_PERCENT = 10;
+const COMMISSION_THRESHOLD = 150;
 
 export const data = new SlashCommandBuilder()
   .setName("transfer")
@@ -28,7 +29,10 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: ChatInputCommandInteraction) {
   const guild = interaction.guild;
   if (!guild) {
-    await interaction.reply({ ephemeral: true, content: "❌ Команда тільки для сервера" });
+    await interaction.reply({
+      ephemeral: true,
+      content: "❌ Команда доступна тільки на сервері",
+    });
     return;
   }
 
@@ -37,41 +41,58 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const amount = interaction.options.getInteger("amount", true);
 
   if (receiver.bot) {
-    await interaction.reply({ ephemeral: true, content: "❌ Ботам не можна передавати монети" });
+    await interaction.reply({
+      ephemeral: true,
+      content: "❌ Ботам не можна передавати монети",
+    });
     return;
   }
 
   if (receiver.id === sender.id) {
-    await interaction.reply({ ephemeral: true, content: "❌ Не можна передавати монети самому собі" });
+    await interaction.reply({
+      ephemeral: true,
+      content: "❌ Не можна передавати монети самому собі",
+    });
     return;
   }
 
   await interaction.deferReply();
 
-  const commission = Math.ceil((amount * COMMISSION_PERCENT) / 100);
-  const totalCost = amount + commission;
+  const isCommissionApplied = amount >= COMMISSION_THRESHOLD;
+
+  const commission = isCommissionApplied
+    ? Math.ceil((amount * COMMISSION_PERCENT) / 100)
+    : 0;
+
+  const receivedAmount = amount - commission;
 
   try {
-    await spendBalance(guild.id, sender.id, totalCost);
+    // списуємо рівно amount
+    await spendBalance(guild.id, sender.id, amount);
 
-    await addBalance(guild.id, receiver.id, amount);
+    // отримувач отримує суму мінус комісія
+    await addBalance(guild.id, receiver.id, receivedAmount);
 
-const senderStats = await getUserStats(guild.id, sender.id);
-const senderBalance = senderStats.balance ?? 0;
+    const senderStats = await getUserStats(guild.id, sender.id);
+    const senderBalance = senderStats.balance ?? 0;
 
-const embed = new EmbedBuilder()
-    .setColor(0x2b2d31)
-    .setAuthor({
+    const embed = new EmbedBuilder()
+      .setColor(0x2b2d31)
+      .setAuthor({
         name: "Переказ монет",
         iconURL: sender.displayAvatarURL({ size: 128 }),
-    })
-    .setThumbnail(sender.displayAvatarURL({ size: 1024 }))
-    .addFields(
-        { name: "Відправив", value: `\`\`\`${amount}\`\`\``, inline: true },
+      })
+      .setThumbnail(sender.displayAvatarURL({ size: 1024 }))
+      .addFields(
+        { name: "Ви віддали", value: `\`\`\`${amount}\`\`\``, inline: true },
+        { name: "Отримав", value: `\`\`\`${receivedAmount}\`\`\``, inline: true },
         { name: "Ваш баланс", value: `\`\`\`${senderBalance}\`\`\``, inline: true },
-    )
-    .setDescription(`**Отримав учасник:** <@${receiver.id}>`)
-    .setTimestamp();
+      )
+      .setDescription(
+        `**Отримувач:** <@${receiver.id}>` +
+        (commission > 0 ? `\n**Комісія:** ${commission}` : "")
+      )
+      .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
 
@@ -82,11 +103,11 @@ const embed = new EmbedBuilder()
     }
 
     if (err.message === "USER_STATS_NOT_FOUND") {
-      await interaction.editReply("⚠️ Не вдалося знайти профіль користувача");
+      await interaction.editReply("⚠️ Профіль користувача не знайдено");
       return;
     }
 
     console.error("Transfer error:", err);
-    await interaction.editReply("⚠️ Сталася помилка при переказі");
+    await interaction.editReply("⚠️ Сталася помилка при переказі монет");
   }
 }
