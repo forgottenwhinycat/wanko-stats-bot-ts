@@ -1,12 +1,8 @@
-// src/utils/commands/profileUtils.ts
 import path from "path";
 import sharp from "sharp";
 import { Guild, User } from "discord.js";
-import { getMarriage } from "../../firebase/db";
+import { getMarriage } from "../../../firebase/db";
 
-// ==========================
-// Форматування рейтингу
-// ==========================
 export function formatRank(rank: number): string {
   if (rank >= 1 && rank <= 15) return rank.toString();
   if (rank >= 16 && rank <= 25) return "15+";
@@ -17,18 +13,12 @@ export function formatRank(rank: number): string {
   return "0+";
 }
 
-// ==========================
-// Форматування часу голосу
-// ==========================
 export function formatVoiceTimeHMS(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${h.toString().padStart(2, "0")}h ${m.toString().padStart(2, "0")}m`;
 }
 
-// ==========================
-// Обрізання імені, щоб влазило
-// ==========================
 export function fitUsername(username: string, maxWidth: number, fontSize: number): string {
   const avgCharWidth = fontSize * 0.6;
   const maxChars = Math.floor(maxWidth / avgCharWidth);
@@ -36,9 +26,6 @@ export function fitUsername(username: string, maxWidth: number, fontSize: number
   return username;
 }
 
-// ==========================
-// SVG для імені
-// ==========================
 export function buildUsernameSvg(username: string): string {
   const fontPath = path.join(__dirname, "../../fonts/Montserrat-Bold.ttf");
   const blockWidth = 800;
@@ -69,9 +56,6 @@ export function buildUsernameSvg(username: string): string {
   `;
 }
 
-// ==========================
-// SVG для однієї клітинки статистики
-// ==========================
 export function buildGridItemSvg(value: string | number): string {
   const fontPath = path.join(__dirname, "../../fonts/Montserrat-SemiBold.ttf");
 
@@ -92,9 +76,6 @@ export function buildGridItemSvg(value: string | number): string {
   `;
 }
 
-// ==========================
-// Партнер (avatar + username або "немає пари")
-// ==========================
 export async function buildPartnerBlock(guild: Guild, user: User) {
   const partnerId = await getMarriage(guild.id, user.id);
   const partnerX = 215;
