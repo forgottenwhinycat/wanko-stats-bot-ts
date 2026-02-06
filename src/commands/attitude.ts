@@ -1,21 +1,16 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { giveRep } from "../firebase/db";
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { giveRep, getUserStats } from "../firebase/db";
 
 const cooldowns = new Map<string, number>();
 
 export const data = new SlashCommandBuilder()
   .setName("reputation")
-  .setDescription("Дай або забери реп у іншого користувача")
-  .addUserOption(option =>
-    option
-      .setName("user")
-      .setDescription("Користувач, якому даєте/забираєте реп")
-      .setRequired(true)
-  )
-  .addStringOption(option =>
-    option
+  .setDescription("Зміна репутації учасника")
+  .addUserOption(o => o.setName("user").setDescription("Користувач, якому даєте/забираєте репутацію").setRequired(true))
+  .addStringOption(o =>
+    o
       .setName("type")
-      .setDescription("Додати або забрати реп")
+      .setDescription("Додати або забрати репутацію")
       .setRequired(true)
       .addChoices(
         { name: "Додати +1", value: "add" },
@@ -25,48 +20,46 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const guild = interaction.guild;
-  if (!guild) {
-    return interaction.reply({
-      content: "Ця команда доступна лише на сервері.",
-      ephemeral: true,
-    });
-  }
+  if (!guild) return void interaction.reply({ content: "Ця команда доступна лише на сервері.", ephemeral: true });
 
-  const userId = interaction.user.id;
-
-  const now = Date.now();
-  const cooldownAmount = 6 * 60 * 60 * 1000; 
-  const expirationTime = cooldowns.get(userId) || 0;
-
-  if (now < expirationTime) {
-    const remaining = expirationTime - now;
-    const hours = Math.floor(remaining / (1000 * 60 * 60));
-    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-    return interaction.reply({
-      content: `⏳ Зачекай ще ${hours} годин і ${minutes} хвилин перед повторним використанням реп-команди.`,
-      ephemeral: true,
-    });
-  }
-
-  cooldowns.set(userId, now + cooldownAmount);
-
+  const giverId = interaction.user.id;
   const targetUser = interaction.options.getUser("user", true);
   const type = interaction.options.getString("type", true);
   const amount = type === "add" ? 1 : -1;
 
-  try {
-    const result = await giveRep(guild.id, userId, targetUser.id, amount);
-    const targetTag = `<@${targetUser.id}>`;
+  const now = Date.now();
+  const cooldownTime = 6 * 60 * 60 * 1000;
+  const expiration = cooldowns.get(giverId) || 0;
+  if (now < expiration) {
+    const remaining = expiration - now;
+    const hours = Math.floor(remaining / 3_600_000);
+    const minutes = Math.floor((remaining % 3_600_000) / 60_000);
+    return void interaction.reply({ content: `Зачекай ще ${hours} годин і ${minutes} хвилин перед повторним використанням реп-команди.`, ephemeral: true });
+  }
 
-    return interaction.reply({
-      content: `${targetTag} ${result.message}`,
-      ephemeral: result.ephemeral ?? false,
-    });
+  cooldowns.set(giverId, now + cooldownTime);
+  await interaction.deferReply();
+
+  try {
+    const result = await giveRep(guild.id, giverId, targetUser.id, amount);
+    if (!result.success) return void interaction.editReply(result.message);
+
+    const receiverStats = await getUserStats(guild.id, targetUser.id);
+    const embed = new EmbedBuilder()
+      .setColor(0x2b2d31)
+      .setAuthor({ name: "Репутація", iconURL: interaction.user.displayAvatarURL({ size: 128 }) })
+      .setThumbnail(targetUser.displayAvatarURL({ size: 1024 }))
+      .addFields(
+        { name: "Видано", value: `\`\`\`${amount > 0 ? "+" : ""}${amount}\`\`\``, inline: true },
+        { name: "Репутація", value: `\`\`\`${receiverStats.rep}\`\`\``, inline: true }
+      )
+      .setDescription(`Видав: <@${interaction.user.id}>`) 
+      .setTimestamp();
+
+
+    await interaction.editReply({content: `<@${targetUser.id}>`, embeds: [embed] });
   } catch (err) {
     console.error("Rep command error:", err);
-    return interaction.reply({
-      content: "❌ Сталася помилка при зміні репутації.",
-      ephemeral: true,
-    });
+    await interaction.editReply("❌ Сталася помилка при зміні репутації.");
   }
 }
