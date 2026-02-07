@@ -20,7 +20,6 @@ import {
 } from "discord.js";
 import { addXp, addVoiceXp, resetOldPeriods, giveVoicePassiveCoin } from "./src/firebase/db";
 import config from "./config.json";
-import { handleButton } from "./src/commands/reward";
 import { initGuildVisuals } from "./src/utils/guildVisuals";
 import { startDailyActivityRoleWatcher } from "./src/utils/dailyActivityRole";
 
@@ -95,7 +94,9 @@ function createTicketChannel(interaction: any, type: "support" | "report") {
 }
 
 client.once(Events.ClientReady, async () => {
-  initGuildVisuals(client, guildId);
+  const startBanner = initGuildVisuals(client, guildId);
+  await startBanner();
+
   await clearCommands();
   await registerCommands();
   await resetOldPeriods();
@@ -159,7 +160,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isButton()) return;
 
   const member = interaction.member as GuildMember;
-  if (interaction.customId === "claim_voice_reward") return handleButton(interaction);
 
   if (interaction.customId === "create_support" || interaction.customId === "create_report") {
     const type = interaction.customId === "create_support" ? "support" : "report";

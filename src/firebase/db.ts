@@ -557,13 +557,16 @@ type RewardResult =
       remainingMs: number;
     };
 
-export async function claimVoiceReward(guildId: string, userId: string): Promise<RewardResult> {
+export async function claimVoiceReward(
+  guildId: string,
+  userId: string
+): Promise<RewardResult> {
   const userRef = await ensureUserStats(guildId, userId);
   const snap = await getDoc(userRef);
   const data = snap.data()!;
 
-  const stats = data.day;
-  const minutes = stats.voiceMinutes ?? 0;
+  const statsDay = data.day;
+  const minutes = statsDay.voiceMinutes ?? 0;
 
   if (minutes < REQUIRED_MINUTES) {
     return {
@@ -571,7 +574,7 @@ export async function claimVoiceReward(guildId: string, userId: string): Promise
       reason: "NOT_ENOUGH_MINUTES",
       minutes,
       required: REQUIRED_MINUTES,
-      remaining: REQUIRED_MINUTES - minutes
+      remaining: REQUIRED_MINUTES - minutes,
     };
   }
 
@@ -586,19 +589,22 @@ export async function claimVoiceReward(guildId: string, userId: string): Promise
     };
   }
 
-  const newBalance = (stats.balance ?? 0) + REWARD_AMOUNT;
+  const newDayBalance = (statsDay.balance ?? 0) + REWARD_AMOUNT;
+  const newAllBalance = (data.all.balance ?? 0) + REWARD_AMOUNT;
 
   await updateDoc(userRef, {
-    day: { ...stats, balance: newBalance },
+    day: { ...statsDay, balance: newDayBalance },
+    all: { ...data.all, balance: newAllBalance },
     lastVoiceReward: now,
   });
 
   return {
     success: true,
     reward: REWARD_AMOUNT,
-    newBalance,
+    newBalance: newAllBalance,
   };
 }
+
 
 
 

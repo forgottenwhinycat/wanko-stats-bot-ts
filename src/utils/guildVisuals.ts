@@ -2,34 +2,30 @@ import { Client, Guild, VoiceState } from "discord.js";
 import sharp from "sharp";
 import path from "path";
 
-/* ===================== CONFIG ===================== */
-
 const ASSETS_DIR = path.join(__dirname, "..", "..", "assets");
 const BANNER_PATH = path.join(ASSETS_DIR, "banner_base.png");
+const FONT_PATH = path.join(__dirname, "../fonts/Montserrat-Bold.ttf"); 
 
 const BANNER_WIDTH = 1920;
 const BANNER_HEIGHT = 1080;
 
-/* === BLOCK CONFIG (YOU CONTROL POSITION HERE) === */
-
 const TEXT_BLOCKS = {
-  voice: {
-    x: 142, 
-    y: 795,       
-    width: 300,   
-    height: 240,
-    fontSize: 180,
-  },
   members: {
-    x: 1483,
+    x: 142,  
     y: 795,
     width: 300,
     height: 240,
-    fontSize: 180,
+    fontSize: 200,
+  },
+  voice: {
+    x: 1483, 
+    y: 795,
+    width: 300,
+    height: 240,
+    fontSize: 200,
   },
 };
 
-/* ===================== STATE ===================== */
 
 let lastState: {
   membersInVoice: number | null;
@@ -41,7 +37,6 @@ let lastState: {
 
 let updateTimeout: NodeJS.Timeout | null = null;
 
-/* ===================== BANNER ===================== */
 
 async function updateBanner(guild: Guild): Promise<void> {
   const membersInVoice = guild.voiceStates.cache.filter(
@@ -64,13 +59,12 @@ async function updateBanner(guild: Guild): Promise<void> {
 
   const makeBlock = (
     value: number,
-    block: typeof TEXT_BLOCKS.voice
+    block: typeof TEXT_BLOCKS.members
   ) => {
     const cx = block.x + block.width / 2;
     const cy = block.y + block.height / 2;
 
     return `
-      <!-- invisible block -->
       <rect
         x="${block.x}"
         y="${block.y}"
@@ -78,8 +72,6 @@ async function updateBanner(guild: Guild): Promise<void> {
         height="${block.height}"
         fill="rgba(0,0,0,0)"
       />
-
-      <!-- centered text -->
       <text
         x="${cx}"
         y="${cy}"
@@ -96,14 +88,19 @@ async function updateBanner(guild: Guild): Promise<void> {
   const svgText = `
 <svg width="${BANNER_WIDTH}" height="${BANNER_HEIGHT}">
   <style>
+    @font-face {
+      font-family: "MontserratBold";
+      src: url("file://${FONT_PATH}") format("truetype");
+      font-weight: 700;
+      font-style: normal;
+    }
     .text {
       fill: white;
-      font-family: sans-serif;
+      font-family: "MontserratBold";
       font-weight: 700;
     }
   </style>
   ${makeBlock(totalMembers, TEXT_BLOCKS.members)}
-  
   ${makeBlock(membersInVoice, TEXT_BLOCKS.voice)}
 </svg>
 `;
@@ -124,22 +121,16 @@ async function updateBanner(guild: Guild): Promise<void> {
   }
 }
 
-/* ===================== INIT ===================== */
-
 export function initGuildVisuals(client: Client, guildId: string) {
-  client.once("clientReady", async () => {
-    const guild = await client.guilds.fetch(guildId);
-    console.log("🎨 Банерна система активована для:", guild.name);
-
-    await updateBanner(guild);
-  });
-
   client.on("voiceStateUpdate", (oldState) => {
     const guild = oldState.guild;
-
     if (updateTimeout) clearTimeout(updateTimeout);
-    updateTimeout = setTimeout(() => {
-      updateBanner(guild);
-    }, 5000);
+    updateTimeout = setTimeout(() => updateBanner(guild), 5000);
   });
+
+  return async () => {
+    const guild = await client.guilds.fetch(guildId);
+    console.log("🎨 Банерна система активована для:", guild.name);
+    await updateBanner(guild);
+  };
 }

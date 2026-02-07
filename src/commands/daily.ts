@@ -12,13 +12,27 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   try {
     const result = await claimDaily(guildId, userId);
 
-    if (!result.success && result.remaining) {
-      const { hours, minutes, seconds } = result.remaining;
-      return interaction.reply({
-        content: `⏳ Ще зарано! Наступна нагорода буде через ${hours}ч ${minutes}хв ${seconds}с.`,
-        ephemeral: true,
-      });
-    }
+  if (!result.success && result.remaining) {
+    const { hours, minutes, seconds } = result.remaining;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x2b2d31)
+      .setAuthor({
+        name: "Нагорода недоступна",
+        iconURL: interaction.user.displayAvatarURL({ size: 128 }),
+      })
+      .setThumbnail(interaction.user.displayAvatarURL({ size: 128 }))
+      .addFields({
+        name: "Доступно через",
+        value: `\`\`\`${hours}ч ${minutes}хв ${seconds}с\`\`\``,
+        inline: true,
+      })
+      .setTimestamp();
+
+    return interaction.reply({
+      embeds: [embed],
+    });
+  }
 
     const stats = await getUserStats(guildId, userId);
     const balance = stats.balance ?? 0;
