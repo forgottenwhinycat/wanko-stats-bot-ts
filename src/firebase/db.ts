@@ -1,4 +1,4 @@
-import { Period, UserStats } from "../types/types";
+import { DailyResult, Period, UserStats } from "../types/types";
 import { db } from "./firebase";
 import {
   collection,
@@ -14,9 +14,16 @@ import {
 const VOICE_COIN_INTERVAL = 8 * 60 * 1000;
 const VOICE_COIN_AMOUNT = 1;
 
-
 function emptyUserStats(): UserStats {
-  return { xp: 0, level: 0, messages: 0, voiceMinutes: 0, balance: 0, rep: 0 };
+  return {
+    xp: 0,
+    level: 0,
+    messages: 0,
+    voiceMinutes: 0,
+    balance: 0,
+    rep: 0,
+    lotus: 0,
+  };
 }
 
 export function getXpForLevel(level: number): number {
@@ -45,11 +52,11 @@ function getKyivDateComponents() {
   const year = parts.find((p) => p.type === "year")?.value ?? "0";
   const month = (parts.find((p) => p.type === "month")?.value ?? "1").padStart(
     2,
-    "0"
+    "0",
   );
   const day = (parts.find((p) => p.type === "day")?.value ?? "1").padStart(
     2,
-    "0"
+    "0",
   );
 
   return { year: parseInt(year), month: parseInt(month), day: parseInt(day) };
@@ -66,7 +73,7 @@ function getCurrentKyivWeek() {
   const date = new Date(year, month - 1, day);
   const firstDayOfYear = new Date(year, 0, 1);
   const days = Math.floor(
-    (date.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000)
+    (date.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000),
   );
   const weekNumber = Math.ceil((days + firstDayOfYear.getDay() + 1) / 7);
   return `${year}-W${weekNumber.toString().padStart(2, "0")}`;
@@ -106,12 +113,25 @@ async function ensureUserStats(guildId: string, userId: string) {
 
     for (const p of ["all", "day", "week", "month", "year"] as Period[]) {
       if (data[p]) {
-        if (data[p].balance === undefined) {
-          updated[p] = { ...data[p], balance: 0 };
-          need = true;
+        let periodUpdated = false;
+        const periodData = { ...data[p] };
+
+        if (periodData.balance === undefined) {
+          periodData.balance = 0;
+          periodUpdated = true;
         }
-        if (data[p].rep === undefined) {
-          updated[p] = { ...(updated[p] ?? data[p]), rep: 0 };
+        if (periodData.rep === undefined) {
+          periodData.rep = 0;
+          periodUpdated = true;
+        }
+
+        if (p === "all" && periodData.lotus === undefined) {
+          periodData.lotus = 0;
+          periodUpdated = true;
+        }
+
+        if (periodUpdated) {
+          updated[p] = periodData;
           need = true;
         }
       }
@@ -140,7 +160,7 @@ async function ensureUserStats(guildId: string, userId: string) {
 export async function addXp(
   guildId: string,
   userId: string,
-  messageContent?: string
+  messageContent?: string,
 ): Promise<UserStats> {
   const userRef = await ensureUserStats(guildId, userId);
   const snap = await getDoc(userRef);
@@ -164,7 +184,7 @@ export async function addXp(
 export async function addVoiceXp(
   guildId: string,
   userId: string,
-  minutes: number
+  minutes: number,
 ): Promise<UserStats> {
   const userRef = await ensureUserStats(guildId, userId);
   const snap = await getDoc(userRef);
@@ -190,14 +210,14 @@ export function formatVoiceTime(minutes: number): string {
   const mins = minutes % 60;
   return `${String(days).padStart(2, "0")}:${String(hours).padStart(
     2,
-    "0"
+    "0",
   )}:${String(mins).padStart(2, "0")}`;
 }
 
 export async function getUserStats(
   guildId: string,
   userId: string,
-  period: Period = "all"
+  period: Period = "all",
 ): Promise<UserStats> {
   const userRef = await ensureUserStats(guildId, userId);
   const snap = await getDoc(userRef);
@@ -285,18 +305,18 @@ export async function resetOldPeriods() {
   await setDoc(
     metaRef,
     { day: today, week: currentWeek, month: currentMonth, year: currentYear },
-    { merge: true }
+    { merge: true },
   );
 
   console.log(
     `🎉 Скидання завершено успішно! Оновлено ${updatedCount} користувачів.\n` +
-      `📊 Деталі: ${resetCounters.day} днів, ${resetCounters.week} тижнів, ${resetCounters.month} місяців, ${resetCounters.year} років.`
+      `📊 Деталі: ${resetCounters.day} днів, ${resetCounters.week} тижнів, ${resetCounters.month} місяців, ${resetCounters.year} років.`,
   );
 }
 
 export async function forceResetPeriod(
   guildId: string,
-  period: Exclude<Period, "all">
+  period: Exclude<Period, "all">,
 ) {
   const usersCol = collection(db, "guilds", guildId, "users");
   const usersSnap = await getDocs(usersCol);
@@ -391,14 +411,21 @@ export function getNextResetTimes() {
   };
 }
 
-export async function getMarriage(guildId: string, userId: string): Promise<string | null> {
+export async function getMarriage(
+  guildId: string,
+  userId: string,
+): Promise<string | null> {
   const userRef = doc(db, "guilds", guildId, "marriages", userId);
   const snap = await getDoc(userRef);
   if (!snap.exists()) return null;
   return snap.data().spouseId || null;
 }
 
-export async function setMarriage(guildId: string, userId: string, spouseId: string) {
+export async function setMarriage(
+  guildId: string,
+  userId: string,
+  spouseId: string,
+) {
   const userRef = doc(db, "guilds", guildId, "marriages", userId);
   const spouseRef = doc(db, "guilds", guildId, "marriages", spouseId);
 
@@ -406,7 +433,11 @@ export async function setMarriage(guildId: string, userId: string, spouseId: str
   await setDoc(spouseRef, { spouseId: userId });
 }
 
-export async function divorceMarriage(guildId: string, userId: string, spouseId: string) {
+export async function divorceMarriage(
+  guildId: string,
+  userId: string,
+  spouseId: string,
+) {
   const userRef = doc(db, "guilds", guildId, "marriages", userId);
   const spouseRef = doc(db, "guilds", guildId, "marriages", spouseId);
 
@@ -414,44 +445,71 @@ export async function divorceMarriage(guildId: string, userId: string, spouseId:
   await setDoc(spouseRef, { spouseId: "" });
 }
 
-export async function claimDaily(guildId: string, userId: string) {
+export async function claimDaily(
+  guildId: string,
+  userId: string,
+): Promise<DailyResult> {
   const userRef = await ensureUserStats(guildId, userId);
   const snap = await getDoc(userRef);
-  const data = snap.data()!; // non-null assertion
+  const data = snap.data()!;
+
+  const REQUIRED_VOICE = 180;
+  const REQUIRED_MESSAGES = 100;
+  const REWARD = 30;
+  const COOLDOWN = 12 * 60 * 60 * 1000; // 12 часов
 
   const now = Date.now();
-  const lastDaily = data.lastDaily ?? 0;
-  const cooldown = 1000 * 60 * 60; // 1 година
+  const lastClaim = data.lastDaily ?? 0;
 
-  if (now - lastDaily < cooldown) {
-    const remaining = cooldown - (now - lastDaily);
+  // 🔒 Проверка кулдауна
+  if (now - lastClaim < COOLDOWN) {
+    const remaining = COOLDOWN - (now - lastClaim);
     const hours = Math.floor(remaining / 3600000);
     const minutes = Math.floor((remaining % 3600000) / 60000);
     const seconds = Math.floor((remaining % 60000) / 1000);
 
     return {
       success: false,
+      reason: "COOLDOWN",
       remaining: { hours, minutes, seconds },
     };
   }
 
-  const reward = Math.floor(Math.random() * (50 - 25 + 1)) + 25;
+  const statsDay = data.day;
+  const voiceMinutes = statsDay.voiceMinutes ?? 0;
+  const messages = statsDay.messages ?? 0;
 
-  const updatedData = {
-    all: { ...data.all, balance: (data.all.balance ?? 0) + reward },
+  // 📊 Проверка активности
+  if (voiceMinutes < REQUIRED_VOICE || messages < REQUIRED_MESSAGES) {
+    return {
+      success: false,
+      reason: "NOT_ENOUGH_ACTIVITY",
+      voiceMinutes,
+      messages,
+      requiredVoice: REQUIRED_VOICE,
+      requiredMessages: REQUIRED_MESSAGES,
+    };
+  }
+
+  const newBalance = (data.all.balance ?? 0) + REWARD;
+
+  await updateDoc(userRef, {
+    "all.balance": newBalance,
     lastDaily: now,
-  };
-  
-
-  await updateDoc(userRef, updatedData); // тепер updateDoc імпортований
+  });
 
   return {
     success: true,
-    reward,
+    reward: REWARD,
+    newBalance,
   };
 }
 
-export async function deductBalance(guildId: string, userId: string, amount: number) {
+export async function deductBalance(
+  guildId: string,
+  userId: string,
+  amount: number,
+) {
   const userRef = await ensureUserStats(guildId, userId);
   const snap = await getDoc(userRef);
   const data = snap.data();
@@ -461,21 +519,25 @@ export async function deductBalance(guildId: string, userId: string, amount: num
   const newBalance = data.all.balance - amount;
   if (newBalance < 0) throw new Error("Недостатньо монет");
 
-  await setDoc(userRef, { all: { ...data.all, balance: newBalance } }, { merge: true });
+  await setDoc(
+    userRef,
+    { all: { ...data.all, balance: newBalance } },
+    { merge: true },
+  );
   return newBalance;
 }
-
-
-
-
-
 
 export async function giveRep(
   guildId: string,
   giverId: string,
   receiverId: string,
-  amount: number
-): Promise<{ success: boolean; message: string; newRep?: number; ephemeral?: boolean }> {
+  amount: number,
+): Promise<{
+  success: boolean;
+  message: string;
+  newRep?: number;
+  ephemeral?: boolean;
+}> {
   if (giverId === receiverId)
     return { success: false, message: "Нельзя давати реп самому собі" };
 
@@ -559,7 +621,7 @@ type RewardResult =
 
 export async function claimVoiceReward(
   guildId: string,
-  userId: string
+  userId: string,
 ): Promise<RewardResult> {
   const userRef = await ensureUserStats(guildId, userId);
   const snap = await getDoc(userRef);
@@ -605,13 +667,10 @@ export async function claimVoiceReward(
   };
 }
 
-
-
-
-
-
-
-export async function getUserClan(guildId: string, userId: string): Promise<string | null> {
+export async function getUserClan(
+  guildId: string,
+  userId: string,
+): Promise<string | null> {
   const clansRef = collection(db, "guilds", guildId, "clans");
   const clansSnap = await getDocs(clansRef);
 
@@ -632,7 +691,7 @@ export async function createClan(
   guildId: string,
   clanId: string,
   ownerId: string,
-  name: string
+  name: string,
 ) {
   const clanRef = doc(db, "guilds", guildId, "clans", clanId);
 
@@ -645,7 +704,7 @@ export async function createClan(
     name,
     owner: ownerId,
     members: [ownerId],
-    joinRequests: []
+    joinRequests: [],
   });
 
   return { success: true, message: "Клан створено!" };
@@ -654,7 +713,11 @@ export async function createClan(
 // ===========================
 // 📌 Подати заявку на вступ
 // ===========================
-export async function requestJoinClan(guildId: string, clanId: string, userId: string) {
+export async function requestJoinClan(
+  guildId: string,
+  clanId: string,
+  userId: string,
+) {
   const clanRef = doc(db, "guilds", guildId, "clans", clanId);
   const snap = await getDoc(clanRef);
 
@@ -671,7 +734,7 @@ export async function requestJoinClan(guildId: string, clanId: string, userId: s
   }
 
   await updateDoc(clanRef, {
-    joinRequests: [...data.joinRequests, userId]
+    joinRequests: [...data.joinRequests, userId],
   });
 
   return { success: true, message: "Заявка відправлена!" };
@@ -684,7 +747,7 @@ export async function acceptToClan(
   guildId: string,
   clanId: string,
   ownerId: string,
-  userId: string
+  userId: string,
 ) {
   const clanRef = doc(db, "guilds", guildId, "clans", clanId);
   const snap = await getDoc(clanRef);
@@ -694,7 +757,10 @@ export async function acceptToClan(
   const data = snap.data();
 
   if (data.owner !== ownerId) {
-    return { success: false, message: "Тільки лідер клану може приймати учасників" };
+    return {
+      success: false,
+      message: "Тільки лідер клану може приймати учасників",
+    };
   }
 
   if (!data.joinRequests.includes(userId)) {
@@ -703,7 +769,7 @@ export async function acceptToClan(
 
   await updateDoc(clanRef, {
     members: [...data.members, userId],
-    joinRequests: data.joinRequests.filter((id: string) => id !== userId)
+    joinRequests: data.joinRequests.filter((id: string) => id !== userId),
   });
 
   return { success: true, message: "Учасника прийнято!" };
@@ -712,7 +778,11 @@ export async function acceptToClan(
 // ===========================
 // 📌 Покинути клан
 // ===========================
-export async function leaveClan(guildId: string, clanId: string, userId: string) {
+export async function leaveClan(
+  guildId: string,
+  clanId: string,
+  userId: string,
+) {
   const clanRef = doc(db, "guilds", guildId, "clans", clanId);
   const snap = await getDoc(clanRef);
 
@@ -731,7 +801,7 @@ export async function leaveClan(guildId: string, clanId: string, userId: string)
   }
 
   await updateDoc(clanRef, {
-    members: data.members.filter((id: string) => id !== userId)
+    members: data.members.filter((id: string) => id !== userId),
   });
 
   return { success: true, message: "Ви покинули клан" };
@@ -740,7 +810,11 @@ export async function leaveClan(guildId: string, clanId: string, userId: string)
 // ===========================
 // 📌 Видалити клан (лише власник)
 // ===========================
-export async function deleteClan(guildId: string, clanId: string, ownerId: string) {
+export async function deleteClan(
+  guildId: string,
+  clanId: string,
+  ownerId: string,
+) {
   const clanRef = doc(db, "guilds", guildId, "clans", clanId);
   const snap = await getDoc(clanRef);
 
@@ -757,12 +831,11 @@ export async function deleteClan(guildId: string, clanId: string, ownerId: strin
   return { success: true, message: "Клан видалено" };
 }
 
-
 export async function ownerKickMember(
   guildId: string,
   clanId: string,
   ownerId: string,
-  targetId: string
+  targetId: string,
 ) {
   const clanRef = doc(db, `guilds/${guildId}/clans/${clanId}`);
   const snapshot = await getDoc(clanRef);
@@ -774,7 +847,10 @@ export async function ownerKickMember(
   const clan = snapshot.data();
 
   if (clan.owner !== ownerId) {
-    return { success: false, message: "Тільки власник клану може виганяти учасників." };
+    return {
+      success: false,
+      message: "Тільки власник клану може виганяти учасників.",
+    };
   }
 
   if (!clan.members || !Array.isArray(clan.members)) {
@@ -791,17 +867,15 @@ export async function ownerKickMember(
 
   return {
     success: true,
-    message: `Користувача <@${targetId}> вигнано з клану.`
+    message: `Користувача <@${targetId}> вигнано з клану.`,
   };
 }
-
-
 
 export async function ownerCancelRequest(
   guildId: string,
   clanId: string,
   ownerId: string,
-  targetId: string
+  targetId: string,
 ) {
   const clanRef = doc(db, `guilds/${guildId}/clans/${clanId}`);
   const snapshot = await getDoc(clanRef);
@@ -813,27 +887,32 @@ export async function ownerCancelRequest(
   const clan = snapshot.data();
 
   if (clan.owner !== ownerId) {
-    return { success: false, message: "Тільки власник клану може скасовувати заявки." };
+    return {
+      success: false,
+      message: "Тільки власник клану може скасовувати заявки.",
+    };
   }
 
-  if (!Array.isArray(clan.joinRequests) || !clan.joinRequests.includes(targetId)) {
+  if (
+    !Array.isArray(clan.joinRequests) ||
+    !clan.joinRequests.includes(targetId)
+  ) {
     return { success: false, message: "У цього користувача немає заявки." };
   }
 
-  const updatedRequests = clan.joinRequests.filter((id: string) => id !== targetId);
+  const updatedRequests = clan.joinRequests.filter(
+    (id: string) => id !== targetId,
+  );
 
   await updateDoc(clanRef, { joinRequests: updatedRequests });
 
   return {
     success: true,
-    message: `Заявку користувача <@${targetId}> скасовано.`
+    message: `Заявку користувача <@${targetId}> скасовано.`,
   };
 }
 
-export async function giveVoicePassiveCoin(
-  guildId: string,
-  userId: string
-) {
+export async function giveVoicePassiveCoin(guildId: string, userId: string) {
   const ref = await ensureUserStats(guildId, userId);
   const snap = await getDoc(ref);
   const data = snap.data();
@@ -858,7 +937,7 @@ export async function giveVoicePassiveCoin(
 export async function spendBalance(
   guildId: string,
   userId: string,
-  amount: number
+  amount: number,
 ) {
   if (amount <= 0) {
     throw new Error("INVALID_AMOUNT");
@@ -891,7 +970,7 @@ export async function spendBalance(
 export async function addBalance(
   guildId: string,
   userId: string,
-  amount: number
+  amount: number,
 ) {
   if (amount <= 0) {
     throw new Error("INVALID_AMOUNT");
@@ -913,4 +992,112 @@ export async function addBalance(
   });
 
   return newBalance;
+}
+
+export const LOTUS_EXCHANGE_RATE = 150; // 150 монет = 1 лотус
+
+export async function exchangeCoinsToLotus(
+  guildId: string,
+  userId: string,
+  amount: number = 1,
+) {
+  if (amount <= 0) {
+    throw new Error("INVALID_AMOUNT");
+  }
+
+  const userRef = await ensureUserStats(guildId, userId);
+  const snap = await getDoc(userRef);
+
+  if (!snap.exists()) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  const data = snap.data();
+
+  const coinsNeeded = LOTUS_EXCHANGE_RATE * amount;
+  const currentBalance = data.all?.balance ?? 0;
+  const currentLotus = data.all?.lotus ?? 0;
+
+  if (currentBalance < coinsNeeded) {
+    throw new Error("NOT_ENOUGH_COINS");
+  }
+
+  const newBalance = currentBalance - coinsNeeded;
+  const newLotus = currentLotus + amount;
+
+  await updateDoc(userRef, {
+    "all.balance": newBalance,
+    "all.lotus": newLotus,
+  });
+
+  return {
+    spent: coinsNeeded,
+    received: amount,
+    balance: newBalance,
+    lotus: newLotus,
+  };
+}
+
+export async function exchangeLotusToCoins(
+  guildId: string,
+  userId: string,
+  amount: number = 1,
+) {
+  if (amount <= 0) {
+    throw new Error("INVALID_AMOUNT");
+  }
+
+  const userRef = await ensureUserStats(guildId, userId);
+  const snap = await getDoc(userRef);
+
+  if (!snap.exists()) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  const data = snap.data();
+
+  const currentLotus = data.all?.lotus ?? 0;
+  const currentBalance = data.all?.balance ?? 0;
+
+  if (currentLotus < amount) {
+    throw new Error("NOT_ENOUGH_LOTUS");
+  }
+
+  const coinsReceived = LOTUS_EXCHANGE_RATE * amount;
+
+  const newLotus = currentLotus - amount;
+  const newBalance = currentBalance + coinsReceived;
+
+  await updateDoc(userRef, {
+    "all.lotus": newLotus,
+    "all.balance": newBalance,
+  });
+
+  return {
+    spentLotus: amount,
+    receivedCoins: coinsReceived,
+    balance: newBalance,
+    lotus: newLotus,
+  };
+}
+
+export async function deductLotus(
+  guildId: string,
+  userId: string,
+  amount: number,
+) {
+  const userRef = await ensureUserStats(guildId, userId);
+  const snap = await getDoc(userRef);
+  const data = snap.data();
+
+  const currentLotus = data?.all?.lotus ?? 0;
+  if (currentLotus < amount) throw new Error("Недостатньо лотусів");
+
+  const newLotus = currentLotus - amount;
+
+  await updateDoc(userRef, {
+    "all.lotus": newLotus,
+  });
+
+  return newLotus;
 }

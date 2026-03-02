@@ -51,6 +51,7 @@ export interface UserStats {
   rep: number;
 
   balanceSpent?: number;
+  lotus: number;
 }
 
 export interface ShopItem {
@@ -59,3 +60,26 @@ export interface ShopItem {
   price: number;
 }
 
+export type DailyResult =
+  | {
+      success: true;
+      reward: number;
+      newBalance: number;
+    }
+  | {
+      success: false;
+      reason: "COOLDOWN";
+      remaining: {
+        hours: number;
+        minutes: number;
+        seconds: number;
+      };
+    }
+  | {
+      success: false;
+      reason: "NOT_ENOUGH_ACTIVITY";
+      voiceMinutes: number;
+      messages: number;
+      requiredVoice: number;
+      requiredMessages: number;
+    };
