@@ -10,17 +10,23 @@ const ANNOUNCE_CHANNEL_ID = "1440122833689641043";
 const awardedToday = new Set<string>();
 
 function isEligible(stats: { voiceMinutes?: number; messages?: number }) {
-  return (stats.voiceMinutes ?? 0) >= REQUIRED_VOICE_MINUTES || (stats.messages ?? 0) >= REQUIRED_MESSAGES;
+  return (
+    (stats.voiceMinutes ?? 0) >= REQUIRED_VOICE_MINUTES ||
+    (stats.messages ?? 0) >= REQUIRED_MESSAGES
+  );
 }
 
 export function startDailyActivityRoleWatcher(client: any, guildId: string) {
-  if (!guildId) throw new Error("GUILD_ID не заданий для DailyActivityRoleWatcher");
+  if (!guildId)
+    throw new Error("GUILD_ID не заданий для DailyActivityRoleWatcher");
 
   const runCheck = async () => {
     try {
       const guild: Guild = await client.guilds.fetch(guildId);
       const members = await guild.members.fetch();
-      const announceChannel = guild.channels.cache.get(ANNOUNCE_CHANNEL_ID) as TextChannel;
+      const announceChannel = guild.channels.cache.get(
+        ANNOUNCE_CHANNEL_ID,
+      ) as TextChannel;
 
       for (const [, member] of members) {
         if (member.user.bot) continue;
@@ -36,11 +42,16 @@ export function startDailyActivityRoleWatcher(client: any, guildId: string) {
 
               if (announceChannel?.isTextBased()) {
                 const embed = new EmbedBuilder()
-                  .setDescription(`Вітаємо ${member}!\nВам видана роль **Premium** за актив.\n\nДля огляду можете переглянути свої ролі на сервері в профілі.`)
+                  .setDescription(
+                    `Вітаємо ${member}!\nВам видана роль **Premium** за актив.\n\nДля огляду можете переглянути свої ролі на сервері в профілі.`,
+                  )
                   .setColor("#000000")
                   .setThumbnail(member.user.displayAvatarURL({ size: 128 }));
 
-                await announceChannel.send({ content: `${member}`, embeds: [embed] });
+                await announceChannel.send({
+                  content: `${member}`,
+                  embeds: [embed],
+                });
               }
             }
           } else if (hasRole) {
@@ -57,5 +68,7 @@ export function startDailyActivityRoleWatcher(client: any, guildId: string) {
 
   runCheck();
   cron.schedule("*/5 * * * *", runCheck, { timezone: "Europe/Kyiv" });
-  cron.schedule("0 0 * * *", () => awardedToday.clear(), { timezone: "Europe/Kyiv" });
+  cron.schedule("0 0 * * *", () => awardedToday.clear(), {
+    timezone: "Europe/Kyiv",
+  });
 }
